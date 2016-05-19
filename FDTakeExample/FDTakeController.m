@@ -8,6 +8,7 @@
 
 #import "FDTakeController.h"
 #import <MobileCoreServices/MobileCoreServices.h>
+#import <AVFoundation/AVFoundation.h>
 
 #define kPhotosActionSheetTag 1
 #define kVideosActionSheetTag 2
