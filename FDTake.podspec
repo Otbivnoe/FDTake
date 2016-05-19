@@ -10,7 +10,7 @@ Pod::Spec.new do |s|
   s.license      = "MIT"
   s.author             = { "William Entriken" => "github.com@phor.net" }
   s.platform     = :ios, "5.0"
-  s.source       = { :git => "https://github.com/fulldecent/FDTake.git", :tag => "v0.2.6" }
+  s.source       = { :git => "https://github.com/Otbivnoe/FDTake.git", :tag => "v0.2.6", :branch => "nik_objc" }
   s.source_files  = "FDTakeExample/FDTakeController.{h,m}"
   s.resource_bundles = {
     'FDTakeResources' => ['FDTakeExample/*.lproj']
