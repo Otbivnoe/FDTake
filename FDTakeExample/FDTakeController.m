@@ -19,6 +19,8 @@ static NSString * const kTakeVideoKey = @"takeVideo";
 static NSString * const kChooseFromLibraryKey = @"chooseFromLibrary";
 static NSString * const kChooseFromPhotoRollKey = @"chooseFromPhotoRoll";
 static NSString * const kCancelKey = @"cancel";
+static NSString * const kPermissionKey = @"permissions";
+static NSString * const kSettingsKey = @"setting";
 static NSString * const kNoSourcesKey = @"noSources";
 static NSString * const kStringsTableName = @"FDTake";
 
@@ -172,56 +174,76 @@ static NSString * const kStringsTableName = @"FDTake";
 
 - (void)actionSheet:(UIActionSheet *)actionSheet didDismissWithButtonIndex:(NSInteger)buttonIndex
 {
-    UIViewController *aViewController = [self _topViewController:[[[UIApplication sharedApplication] keyWindow] rootViewController] ];
     if (buttonIndex == self.actionSheet.cancelButtonIndex) {
         if ([self.delegate respondsToSelector:@selector(takeController:didCancelAfterAttempting:)])
             [self.delegate takeController:self didCancelAfterAttempting:NO];
     } else {
         self.imagePicker.sourceType = [(self.sources)[buttonIndex] integerValue];
-        
-        if ((self.imagePicker.sourceType==UIImagePickerControllerSourceTypeCamera) || (self.imagePicker.sourceType==UIImagePickerControllerSourceTypeCamera)) {
-            if (self.defaultToFrontCamera && [UIImagePickerController isCameraDeviceAvailable:UIImagePickerControllerCameraDeviceFront]) {
-                [self.imagePicker setCameraDevice:UIImagePickerControllerCameraDeviceFront];
-            }
-        }
-        // set the media type: photo or video
-        if (actionSheet.tag == kPhotosActionSheetTag) {
-            self.imagePicker.allowsEditing = self.allowsEditingPhoto;
-            self.imagePicker.mediaTypes = @[(NSString *) kUTTypeImage];
-        } else if (actionSheet.tag == kVideosActionSheetTag) {
-            self.imagePicker.allowsEditing = self.allowsEditingVideo;
-            self.imagePicker.mediaTypes = @[(NSString *) kUTTypeMovie];
-        } else if (actionSheet.tag == kVideosOrPhotosActionSheetTag) {
-            if ([self.sources count] == 1) {
-                if (buttonIndex == 0) {
-                    self.imagePicker.mediaTypes = @[(NSString *)kUTTypeImage, (NSString *)kUTTypeMovie];
-                }
-            } else {
-                if (buttonIndex == 0) {
-                    self.imagePicker.allowsEditing = self.allowsEditingPhoto;
-                    self.imagePicker.mediaTypes = @[(NSString *)kUTTypeImage];
-                } else if (buttonIndex == 1) {
-                    self.imagePicker.allowsEditing = self.allowsEditingVideo;
-                    self.imagePicker.mediaTypes = @[(NSString *)kUTTypeMovie];
-                } else if (buttonIndex == 2) {
-                    self.imagePicker.mediaTypes = @[(NSString *)kUTTypeImage, (NSString *)kUTTypeMovie];
-                }
-            }
-        }
-        
-        // On iPad use pop-overs.
-        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-            [self.popover presentPopoverFromRect:self.popOverPresentRect
-                                          inView:aViewController.view
-                        permittedArrowDirections:UIPopoverArrowDirectionAny
-                                        animated:YES];
-        }
-        else {
-            // On iPhone use full screen presentation.
-            [[self presentingViewController] presentViewController:self.imagePicker animated:YES completion:nil];
+
+        if (self.imagePicker.sourceType==UIImagePickerControllerSourceTypeCamera) {
+            [AVCaptureDevice requestAccessForMediaType:AVMediaTypeVideo completionHandler:^(BOOL granted) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (granted) {
+                        if (self.defaultToFrontCamera && [UIImagePickerController isCameraDeviceAvailable:UIImagePickerControllerCameraDeviceFront]) {
+                            [self.imagePicker setCameraDevice:UIImagePickerControllerCameraDeviceFront];
+                        }
+                        [self configureAndPresentImagePickerForActionSheetTag:actionSheet.tag andButtonIndex:buttonIndex];
+                    } else {
+                        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:nil message:FDLOCALIZATION(kPermissionKey, @"Permission alert") preferredStyle:UIAlertControllerStyleAlert];
+                        [alertController addAction:[UIAlertAction actionWithTitle:FDLOCALIZATION(kCancelKey, @"Decline to proceed with operation") style:UIAlertActionStyleCancel handler:nil]];
+                        [alertController addAction:[UIAlertAction actionWithTitle:FDLOCALIZATION(kSettingsKey, @"Option to open settings") style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                            [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+                        }]];
+                        [[self presentingViewController] presentViewController:alertController animated:YES completion:nil];
+                    }
+                });
+            }];
+        } else {
+            [self configureAndPresentImagePickerForActionSheetTag:actionSheet.tag andButtonIndex:buttonIndex];
         }
     }
-    _actionSheet = nil;
+}
+
+- (void)configureAndPresentImagePickerForActionSheetTag:(NSInteger)actionSheetTag andButtonIndex:(NSInteger)buttonIndex
+{
+    UIViewController *aViewController = [self _topViewController:[[[UIApplication sharedApplication] keyWindow] rootViewController] ];
+    
+    // set the media type: photo or video
+    if (actionSheetTag == kPhotosActionSheetTag) {
+        self.imagePicker.allowsEditing = self.allowsEditingPhoto;
+        self.imagePicker.mediaTypes = @[(NSString *) kUTTypeImage];
+    } else if (actionSheetTag == kVideosActionSheetTag) {
+        self.imagePicker.allowsEditing = self.allowsEditingVideo;
+        self.imagePicker.mediaTypes = @[(NSString *) kUTTypeMovie];
+    } else if (actionSheetTag == kVideosOrPhotosActionSheetTag) {
+        if ([self.sources count] == 1) {
+            if (buttonIndex == 0) {
+                self.imagePicker.mediaTypes = @[(NSString *)kUTTypeImage, (NSString *)kUTTypeMovie];
+            }
+        } else {
+            if (buttonIndex == 0) {
+                self.imagePicker.allowsEditing = self.allowsEditingPhoto;
+                self.imagePicker.mediaTypes = @[(NSString *)kUTTypeImage];
+            } else if (buttonIndex == 1) {
+                self.imagePicker.allowsEditing = self.allowsEditingVideo;
+                self.imagePicker.mediaTypes = @[(NSString *)kUTTypeMovie];
+            } else if (buttonIndex == 2) {
+                self.imagePicker.mediaTypes = @[(NSString *)kUTTypeImage, (NSString *)kUTTypeMovie];
+            }
+        }
+    }
+    
+    // On iPad use pop-overs.
+    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+        [self.popover presentPopoverFromRect:self.popOverPresentRect
+                                      inView:aViewController.view
+                    permittedArrowDirections:UIPopoverArrowDirectionAny
+                                    animated:YES];
+    }
+    else {
+        // On iPhone use full screen presentation.
+        [[self presentingViewController] presentViewController:self.imagePicker animated:YES completion:nil];
+    }
 }
 
 #pragma mark - UIAlertViewDelegate

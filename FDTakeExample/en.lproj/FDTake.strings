@@ -15,3 +15,9 @@
 
 /* Option to take video using camera */
 "takeVideo" = "Take video";
+
+/* Permission alert */
+"permissions" = "Please allow access to your camera";
+
+/* Option to open settings */
+"setting" = "Open Settings";
