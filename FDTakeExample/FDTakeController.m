@@ -259,9 +259,6 @@ static NSString * const kStringsTableName = @"FDTake";
 
 - (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary *)info
 {
-    
-    [[UIApplication sharedApplication] setStatusBarHidden:YES];
-    
     NSString *mediaType = info[UIImagePickerControllerMediaType];
     UIImage *originalImage, *editedImage, *imageToSave;
     
@@ -301,8 +298,6 @@ static NSString * const kStringsTableName = @"FDTake";
 
 - (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker
 {
-    
-    [[UIApplication sharedApplication] setStatusBarHidden:YES];
     [picker dismissViewControllerAnimated:YES completion:nil];
     self.imagePicker = nil;
 
